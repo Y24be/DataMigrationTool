@@ -15,7 +15,7 @@ await CreateHostBuilder(args)
 static IHostBuilder CreateHostBuilder(string[] args) =>
     Host.CreateDefaultBuilder()
     .ConfigureServices((_, services) =>
-{
+    {
     services.AddOptions();
     services.AddTransient<DataMigrationToolApp>();
-});
+    });
