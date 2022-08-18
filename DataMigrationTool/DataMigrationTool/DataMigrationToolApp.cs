@@ -6,7 +6,16 @@ using System.Threading.Tasks;
 
 namespace DataMigrationTool
 {
-    internal class DataMigrationToolApp
+    public class DataMigrationToolApp : ConsoleAppBase
     {
+        public static bool IsCancelled { get; set; }
+
+        public void Copy()
+        {
+            using var sourceConnection = OpenConnection.OpenSourceConnection("source");
+            using var destinationConnection = OpenConnection.OpenSourceConnection("destination");
+        }
+
+
     }
 }
