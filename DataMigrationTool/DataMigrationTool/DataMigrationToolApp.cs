@@ -20,21 +20,20 @@ namespace DataMigrationTool
             [Option("t")] string tableName,
             [Option("r")] int rowCount)
         {
+            var dataBase = new DataBase();
+
             // DB接続
-            using var sourceConnection = OpenConnection.OpenSourceConnection("source");
-            using var destinationConnection = OpenConnection.OpenSourceConnection("destination");
+            using var sourceConnection = dataBase.OpenSourceConnection("source");
+            using var destinationConnection = dataBase.OpenSourceConnection("destination");
 
             // TableClass作成
-            var table = new Table(schemaName, tableName);
-
-            // PK名取得
-            table.PrimaryKeyName = GetPrimaryKeyName(sourceConnection, table);
+            var table = dataBase.GetTable(sourceConnection, schemaName, tableName);
 
             // 最大PK取得
-            var maxPrimaryKey = GetMaxPrimaryKey(sourceConnection, table);
+            var maxPrimaryKey = dataBase.GetMaxPrimaryKey(sourceConnection, table);
 
             // 転送対象件数取得
-            var transferCount = GetTransferCount(sourceConnection, table, GetMaxPrimaryKey(destinationConnection, table));
+            var transferCount = dataBase.GetTransferCount(sourceConnection, table, dataBase.GetMaxPrimaryKey(destinationConnection, table));
 
             // 転送済件数
             var transferredCount = 0;
@@ -49,11 +48,11 @@ namespace DataMigrationTool
             // Ctrl+Cが押されたら中断する
             while (!IsCancelled)
             {
-                var destinationMaxPrimaryKey = GetMaxPrimaryKey(destinationConnection, table);
+                var destinationMaxPrimaryKey = dataBase.GetMaxPrimaryKey(destinationConnection, table);
                 // 送信元と送信先の最大PKが一致したら転送完了
                 if (maxPrimaryKey == destinationMaxPrimaryKey) break;
 
-                using var reader = OpenSourceReader(rowCount, sourceConnection, table, destinationMaxPrimaryKey);
+                using var reader = dataBase.OpenSourceReader(sourceConnection, table, destinationMaxPrimaryKey, rowCount);
                 using var bulkCopy = new SqlBulkCopy(ConfigurationManager.ConnectionStrings["destination"].ConnectionString, SqlBulkCopyOptions.KeepIdentity);
                 bulkCopy.DestinationTableName = $"{table.SchemaName}.{table.TableName}";
                 bulkCopy.BulkCopyTimeout = 0;
@@ -78,103 +77,5 @@ namespace DataMigrationTool
                 ? "転送を中断しました。"
                 : "転送を完了しました。");
         }
-
-        /// <summary>
-        /// PK取得メソッド
-        /// </summary>
-        /// <param name="connection"></param>
-        /// <param name="tableName"></param>
-        /// <returns></returns>
-        private string GetPrimaryKeyName(IDbConnection connection, Table table)
-        {
-            var query = $@"
-select top 1
-    cols.name as ColumnName
-from
-    sys.tables as tbls
-    inner join sys.key_constraints as key_const 
-		on tbls.object_id = key_const.parent_object_id 
-		and key_const.type = 'PK'
-        and tbls.name = '{table.TableName}'
-    inner join sys.index_columns as idx_cols 
-		on key_const.parent_object_id = idx_cols.object_id
-        and key_const.unique_index_id  = idx_cols.index_id
-    inner join sys.columns as cols 
-		on idx_cols.object_id = cols.object_id
-        and idx_cols.column_id = cols.column_id
-order by
-	cols.column_id
-";
-            return connection.ExecuteScalar<string>(query);
-        }
-
-        /// <summary>
-        /// PKの最大値取得メソッド
-        /// </summary>
-        /// <param name="connection"></param>
-        /// <param name="tableName"></param>
-        /// <param name="primaryKeyName"></param>
-        /// <returns></returns>
-        private int GetMaxPrimaryKey(IDbConnection connection, Table table)
-        {
-            var query = $@"
-select
-    max({table.PrimaryKeyName})
-from
-    {table.SchemaName}.{table.TableName}
-";
-            return connection.ExecuteScalar<int>(query);
-        }
-
-        /// <summary>
-        /// 転送対象件数取得メソッド
-        /// </summary>
-        /// <param name="connection"></param>
-        /// <param name="tableName"></param>
-        /// <param name="primaryKeyName"></param>
-        /// <param name="maxPrimaryKey"></param>
-        /// <returns></returns>
-        private int GetTransferCount(IDbConnection connection, Table table, int maxPrimaryKey)
-        {
-            var query = $@"
-select
-    count(1)
-from
-    {table.SchemaName}.{table.TableName}
-where
-    {maxPrimaryKey} < {table.PrimaryKeyName}
-";
-            return connection.ExecuteScalar<int>(query);
-        }
-
-        /// <summary>
-        /// 転送対象取得
-        /// </summary>
-        /// <param name="rowCount"></param>
-        /// <param name="connection"></param>
-        /// <param name="tableName"></param>
-        /// <param name="primaryKeyName"></param>
-        /// <param name="maxPrimnaryKey"></param>
-        /// <returns></returns>
-        private static SqlDataReader OpenSourceReader(int rowCount, SqlConnection connection, Table table, int maxPrimnaryKey)
-        {
-            using var sourceCommand = new SqlCommand();
-            sourceCommand.Connection = connection;
-            sourceCommand.CommandText = $@"
-select top ({rowCount})
-    *
-from
-    {table.SchemaName}.{table.TableName} with(nolock)
-where
-    {maxPrimnaryKey} < {table.PrimaryKeyName}
-order by
-    {table.PrimaryKeyName}
-";
-            sourceCommand.CommandTimeout = 0;
-
-            return sourceCommand.ExecuteReader();
-        }
-
-
     }
 }
