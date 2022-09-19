@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace DataMigrationTool
 {
-    public class Table
+    public record Table
     {
         /// <summary>
         /// スキーマ名
@@ -21,17 +21,18 @@ namespace DataMigrationTool
         /// <summary>
         /// PK
         /// </summary>
-        public string? PrimaryKeyName { get; set; }
+        public string PrimaryKeyName { get; }
 
         /// <summary>
         /// コンストラクタ
         /// </summary>
         /// <param name="schemaName"></param>
         /// <param name="tableName"></param>
-        public Table(string schemaName, string tableName)
+        public Table(string schemaName, string tableName, string primaryKeyName)
         {
             SchemaName = schemaName;
             TableName = tableName;
+            PrimaryKeyName = primaryKeyName;
         }
 
     }
