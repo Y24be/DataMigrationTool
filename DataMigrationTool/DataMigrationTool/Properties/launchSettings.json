@@ -1,8 +1,7 @@
 {
   "profiles": {
     "DataMigrationTool": {
-      "commandName": "Project",
-      "commandLineArgs": "-s Person -t Person -r 1000"
+      "commandName": "Project"
     }
   }
 }
