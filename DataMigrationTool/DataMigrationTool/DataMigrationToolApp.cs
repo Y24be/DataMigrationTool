@@ -76,6 +76,7 @@ namespace DataMigrationTool
             IsCancelled
                 ? "転送を中断しました。"
                 : "転送を完了しました。");
+            Console.ReadKey();
         }
     }
 }
