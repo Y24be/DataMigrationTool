@@ -20,20 +20,20 @@ namespace DataMigrationTool
             [Option("t")] string tableName,
             [Option("r")] int rowCount)
         {
-            var dataBase = new DataBase();
+            var database = new Database();
 
             // DB接続
-            using var sourceConnection = dataBase.OpenSourceConnection("source");
-            using var destinationConnection = dataBase.OpenSourceConnection("destination");
+            using var sourceConnection = database.OpenSourceConnection("source");
+            using var destinationConnection = database.OpenSourceConnection("destination");
 
             // TableClass作成
-            var table = dataBase.GetTable(sourceConnection, schemaName, tableName);
+            var table = database.GetTable(sourceConnection, schemaName, tableName);
 
             // 最大PK取得
-            var maxPrimaryKey = dataBase.GetMaxPrimaryKey(sourceConnection, table);
+            var maxPrimaryKey = database.GetMaxPrimaryKey(sourceConnection, table);
 
             // 転送対象件数取得
-            var transferCount = dataBase.GetTransferCount(sourceConnection, table, dataBase.GetMaxPrimaryKey(destinationConnection, table));
+            var transferCount = database.GetTransferCount(sourceConnection, table, database.GetMaxPrimaryKey(destinationConnection, table));
 
             // 転送済件数
             var transferredCount = 0;
@@ -48,11 +48,11 @@ namespace DataMigrationTool
             // Ctrl+Cが押されたら中断する
             while (!IsCancelled)
             {
-                var destinationMaxPrimaryKey = dataBase.GetMaxPrimaryKey(destinationConnection, table);
+                var destinationMaxPrimaryKey = database.GetMaxPrimaryKey(destinationConnection, table);
                 // 送信元と送信先の最大PKが一致したら転送完了
                 if (maxPrimaryKey == destinationMaxPrimaryKey) break;
 
-                using var reader = dataBase.OpenSourceReader(sourceConnection, table, destinationMaxPrimaryKey, rowCount);
+                using var reader = database.OpenSourceReader(sourceConnection, table, destinationMaxPrimaryKey, rowCount);
                 using var bulkCopy = new SqlBulkCopy(ConfigurationManager.ConnectionStrings["destination"].ConnectionString, SqlBulkCopyOptions.KeepIdentity);
                 bulkCopy.DestinationTableName = $"{table.SchemaName}.{table.TableName}";
                 bulkCopy.BulkCopyTimeout = 0;

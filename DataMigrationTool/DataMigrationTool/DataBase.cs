@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace DataMigrationTool
 {
-    internal class DataBase : IDataBase
+    internal class Database : IDatabase
     {
         /// <summary>
         /// コネクション生成メソッド

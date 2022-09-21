@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace DataMigrationTool
 {
-    internal interface IDataBase
+    internal interface IDatabase
     {
         public  SqlConnection OpenSourceConnection(string source);
 
